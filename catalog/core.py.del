@@ -1,0 +1,89 @@
+from neo4j import GraphDatabase
+import atexit
+
+folder_to_put_db_in="database"
+# Create a database
+db = GraphDatabase(folder_to_put_db_in)
+# install shutdown hook to shutdown database
+atexit.register(lambda : db.shutdown() )
+
+def get_catalogs_root():
+    global db
+    catalogs  = None
+    r = db.reference_node.relationships.outgoing
+    for ri in r:
+        relation_name = ri.type.name()
+        print "root has rel:" , relation_name
+        if relation_name == 'CATALOGS_ROOT' and ri.end['name'] == "CATALOGS": catalogs = ri.end
+
+    if catalogs is None:
+        print "No CATALOGS, creating one..."
+        catalogs = db.node(name="CATALOGS")
+        db.reference_node.CATALOGS_ROOT(catalogs)
+
+    return catalogs
+
+def get_catalog(name):
+    catalogs = get_catalogs_root()
+    catalog = None
+    for r in catalogs.relationships.outgoing:
+        relation_name = r.type.name()
+        print "checking rel:", relation_name, " with end:", r.end['name']
+        if relation_name == "CATALOG" and name == r.end['name']:
+            catalog = r.end
+   
+    if catalog is None:
+        catalog = db.node(name=name)
+        catalogs.CATALOG(catalog)
+
+    return catalog
+
+def create_category(node, name):
+
+    category = None
+    categories = node.relationships.outgoing
+    for r in categories:
+        category_name = r.type.name()
+        if category_name == "CATEGORY" and r.end['name'] == name:
+            category = r.end
+            break
+
+    if category is None:
+        category = db.node(name=name)
+        node.CATEGORY(category)
+
+    return category
+
+def create_path(catalog_name, categories):
+    global db
+    with db.transaction:
+       catalog = get_catalog(catalog_name) 
+       category = catalog
+       for c in categories:
+           print "Adding category: %s" % (c,)
+           category = create_category(category, c)
+
+    return None
+
+class Catalog(object):
+
+    global db
+    def list(self, path = "/"):
+        top_catalogs = []
+        with db.transaction:
+            catalogs_node = get_catalogs_root()
+            for r in catalogs_node.relationships.outgoing:
+                relation_name = r.type.name()
+                if relation_name == "CATALOG":
+                    print "Got catalog with name:" , type(r.end['name'])
+                    top_catalogs.append( "http://host:port/" + r.end['name'] )
+
+        return top_catalogs
+
+    def create(self, path):
+        print "path to put:", path
+        data = path.split("/")
+        catalog_name = data[0]
+        categories = data[1:]
+        create_path(catalog_name, categories)
+        return "Done"

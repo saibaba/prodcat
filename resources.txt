@@ -1,0 +1,47 @@
+read this: http://blog.neo4j.org/2010/03/modeling-categories-in-graph-database.html
+
+
+/tenants/{tenant_id}/catalog/master
+/tenants/{tenant_id}/catalog/sales
+/tenants/{tenant_id}/catalog/sales/computers/memory/dimm
+
+/tenants/{tenant_id}/catalog/sales?categories
+
+/tenants/{tenant_id}/attributes/{attribute_name}
+
+/tenants/{tenant_id}/items/{item_name}
+
+
+catalog:
+columns: name
+samples: master
+sales
+
+categories:
+columns:catalog|category|parent_category|can_create_item
+samples:
+master|Desktops|None|False
+master|OperatingSystem|Desktops|True
+master|Processor|Desktops|True
+
+attributes:
+columns: name|datatype|valueset|is_inherited|is_defaulted|is_inheritable
+
+category_attributes:
+columns:category_id|attribute_id|value(only for defaulted and inheritable ones) 
+
+items:
+column: id|name|desc
+samples:
+Windows 7
+FreeDOS and Linux
+64-bit OS
+
+item_categories:
+columns:item_id|category_id|attribute_id|value(only for defaulted and inheritable ones )
+samples:
+Windows 7|OperatingSystem
+Free DOS and Linux|OperatingSystem
+64-bit OS |OperatingSystem
+
+
