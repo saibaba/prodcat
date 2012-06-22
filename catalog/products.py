@@ -1,20 +1,10 @@
 from db import db
 
 from catalog import Catalog, get_attributes, is_leaf
+from util.neoutil import subreference
 
 def get_products_root():
-    products  = None
-    r = db.reference_node.relationships.outgoing
-    for ri in r:
-        relation_name = ri.type.name()
-        if relation_name == 'PRODUCTS_ROOT' and ri.end['name'] == "PRODUCTS": products = ri.end
-
-    if products is None:
-        print "No PRODUCTS node, creating one..."
-        products = db.node(name="PRODUCTS")
-        db.reference_node.PRODUCTS_ROOT(products)
-
-    return products
+    return subreference('PRODUCTS_ROOT','PRODUCTS')
 
 def get_products():
     products_root = get_products_root()

@@ -1,19 +1,8 @@
 from db import db
+from util.neoutil import subreference
 
 def get_attributes_root():
-    attributes  = None
-    r = db.reference_node.relationships.outgoing
-    for ri in r:
-        relation_name = ri.type.name()
-        print "root has rel:" , relation_name
-        if relation_name == 'ATTRIBUTE_TYPES_ROOT' and ri.end['name'] == "ATTRIBUTE_TYPES": attributes = ri.end
-
-    if attributes is None:
-        print "No ATTRIBUTE_TYPES node, creating one..."
-        attributes = db.node(name="ATTRIBUTE_TYPES")
-        db.reference_node.ATTRIBUTE_TYPES_ROOT(attributes)
-
-    return attributes
+    return subreference("ATTRIBUTE_TYPES_ROOT", "ATTRIBUTE_TYPES")
 
 def get_attributes():
     attributes_root = get_attributes_root()
