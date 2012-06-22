@@ -1,5 +1,6 @@
 from db import db
 from attributes import AttributeType
+from util import has_matching
 from util.neoutil import subreference, childnode, createnodes
 from functools import partial
 
@@ -17,8 +18,8 @@ def _create_path(catalog_name, categories):
        createnodes(catalog, categories, "CATEGORY") 
 
 def get_attributes(node):
-    attributes_from_parent = [ a for r in node.relationships.incoming if r.type.name() == "CATEGORY" for a in get_attributes(r.start)]
-    my_attributes = [(r.end, r)  for r in node.relationships.outgoing if r.type.name() == "ATTRIBUTE_TYPE" ]
+    attributes_from_parent = [ a for rel in node.relationships.incoming if rel.type.name() == "CATEGORY" for a in get_attributes(rel.start)]
+    my_attributes = [(rel.end, rel)  for rel in node.relationships.outgoing if rel.type.name() == "ATTRIBUTE_TYPE"]
     return attributes_from_parent + my_attributes
 
 def _add_attribute(node, attribute, name = None, dflt = None, required = False):
@@ -26,19 +27,11 @@ def _add_attribute(node, attribute, name = None, dflt = None, required = False):
     with db.transaction:
         current_attribute_names = [a[0]['name'] for a in get_attributes(node)]
         if attribute['name'] not in current_attribute_names:
-            r = node.ATTRIBUTE_TYPE(attribute)
-            r['Required'] = required
-            r['Name'] = name if name is not None else attribute['name']
-            r['DefaultValue'] = dflt
+            rel_name = name if name is not None else attribute['name']
+            node.ATTRIBUTE_TYPE(attribute, Required=required,Name=rel_name,DefaultValue=dflt)
 
 def is_leaf(node):
-    leaf = True
-    for r in node.relationships.outgoing:
-        if r.type.name() == "CATEGORY":
-            leaf = False
-            break
-
-    return leaf
+    return not has_matching(node.relationships.outgoing, lambda rel: rel.type.name() == "CATEGORY")
 
 class Catalog(object):
 
@@ -46,11 +39,10 @@ class Catalog(object):
         top_catalogs = []
         with db.transaction:
             catalogs_node = _get_catalogs_root()
-            for r in catalogs_node.relationships.outgoing:
-                relation_name = r.type.name()
-                if relation_name == "CATALOG":
-                    print "Got catalog with name:" , type(r.end['name'])
-                    top_catalogs.append( "http://host:port/" + r.end['name'] )
+            for rel in catalogs_node.relationships.outgoing:
+                if rel.type.name() == "CATALOG":
+                    print "Got catalog with name:" , type(rel.end['name'])
+                    top_catalogs.append( "http://host:port/" + rel.end['name'] )
 
         return top_catalogs
 
@@ -61,13 +53,13 @@ class Catalog(object):
         if len(paths) == 0:
             return node
 
-        for r in start_node.relationships.outgoing:
-           relation_name = r.type.name()
-           if (relation_name == "CATALOG" or relation_name == "CATEGORY") and r.end['name'] == paths[0]:
+        for rel in start_node.relationships.outgoing:
+           relation_name = rel.type.name()
+           if (relation_name == "CATALOG" or relation_name == "CATEGORY") and rel.end['name'] == paths[0]:
                if len(paths) == 1:
-                   node = r.end
+                   node = rel.end
                else:
-                   node = self._search_in_children(r.end, paths[1:])
+                   node = self._search_in_children(rel.end, paths[1:])
                if node is not None:
                    break
 
