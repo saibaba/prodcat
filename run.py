@@ -40,16 +40,23 @@ def test1():
 
     AttributeType.create("Description", "String")
     AttributeType.create("Status", "String")
+    AttributeType.create("Processor", "category_relationship")
+
     print AttributeType.list()
 
-    node = master.get_node("Computer")
-    master.add_attribute(node, "Status")
+    computer = master.get_node("Computer")
+    master.add_attribute(computer, "Status")
+    master.add_attribute(computer, "Processor")
 
-    node = master.get_node("Computer/Home/Desktop")
-    master.add_attribute(node, "Description")
-    print master.get_attributes(node)
+    master.create_categories("Processors/Intel")
+    Product.create("Core Duo i5", dict(Description="i5 processor"), master, "Processors/Intel")
 
-    product = Product.create("Multimedia Server 2", dict(Description="Multimedia Server for audio editing", Status="Inactive"), master, "Computer/Home/Desktop")
+    desktop = master.get_node("Computer/Home/Desktop")
+    master.add_attribute(desktop, "Description")
+    print master.get_attributes(desktop)
+
+    Product.create("Multimedia Server 1", dict(Description="Multimedia Server for video editing", Status="Active", Processor="Processors/Intel"), master, "Computer/Home/Desktop")
+    Product.create("Multimedia Server 2", dict(Description="Multimedia Server for audio editing", Status="Inactive", Processor="Processors/Intel"), master, "Computer/Home/Desktop")
 
 app = web.application(urls, globals())
 if __name__ == "__main__":

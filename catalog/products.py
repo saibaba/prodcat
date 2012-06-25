@@ -45,7 +45,12 @@ def create_product(name, attributes, catalog, category_path):
             relation = ca[1]
             # TODO validate type
             # validate required
-            product[relation['Name']] = attributes[relation['Name']]
+            attribute_value = attributes[relation['Name']]
+            product[relation['Name']] = attribute_value
+            attribute_type = ca[0]
+            if attribute_type['type'] == "category_relationship":
+                rel_category = catalog.get_node(attribute_value)
+                product.relationships.create(relation['Name'], rel_category) 
 
     return product
 

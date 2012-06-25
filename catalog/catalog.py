@@ -13,9 +13,11 @@ def _create_category(node, name):
     return childnode(node, name, "CATEGORY")
 
 def _create_path(catalog_name, categories):
+    node  = None
     with db.transaction:
        catalog = _get_catalog(catalog_name)
-       createnodes(catalog, categories, "CATEGORY") 
+       node = createnodes(catalog, categories, "CATEGORY") 
+    return node
 
 def get_attributes(node):
     attributes_from_parent = [ a for rel in node.relationships.incoming if rel.type.name() == "CATEGORY" for a in get_attributes(rel.start)]
@@ -55,6 +57,7 @@ class Catalog(object):
 
     def __init__(self, catalog_name):
         self.catalog_node = None
+        self.catalog_name = catalog_name
         root = _get_catalogs_root()
         for rel in root.relationships.outgoing:
             if rel.type.name() == "CATALOG" and rel.end['name'] == catalog_name:
@@ -85,8 +88,7 @@ class Catalog(object):
 
     def create_categories(self, categories_path):
         categories = categories_path.split("/")
-        _create_path(self.catalog_name, categories)
-        return self
+        return _create_path(self.catalog_name, categories)
 
     def get_node(self, categories_path):
         paths = categories_path.split("/")
@@ -95,6 +97,8 @@ class Catalog(object):
     def add_attribute(self, node, attribute_type_name):
         attribute_type = AttributeType(attribute_type_name)
         _add_attribute(node, attribute_type)
+
+        return attribute_type
 
     def get_attributes(self, node):
         return [a[0]['name'] for a in get_attributes(node)]

@@ -23,6 +23,9 @@ columns: name
 samples: master
 sales
 
+
+
+--------
 categories:
 columns:catalog|category|parent_category|can_create_item
 samples:

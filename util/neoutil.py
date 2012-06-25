@@ -36,4 +36,4 @@ def createnodes(parent, node_names, rel_name):
     for node_name in node_names:
         node = childnode(node, node_name, rel_name)
 
-    return None
+    return node
