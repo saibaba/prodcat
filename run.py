@@ -6,10 +6,10 @@ from catalog.products import Product
 
 class CatalogFE(object):
     def GET(self, path="/"):
-        return Catalog().list(path)
+        return Catalog.list(path)
 
     def PUT(self, path):
-        return Catalog().create(path)
+        return Catalog.create(path)
 
 class AttributeTypeFE(object):
     def GET(self):
@@ -33,26 +33,23 @@ urls = (
 
 def test1():
 
-    catalog = Catalog()
-    catalogs = catalog.list()
+    catalogs = Catalog.list()
     print "Catalogs: " , catalogs
 
-    catalog.create("master/Computer/Home/Desktop")
+    master = Catalog.create("master", "Computer/Home/Desktop")
 
-    attribute_type = AttributeType()
-    attribute_type.create("Description", "String")
-    attribute_type.create("Status", "String")
-    print attribute_type.list()
+    AttributeType.create("Description", "String")
+    AttributeType.create("Status", "String")
+    print AttributeType.list()
 
-    node = catalog.get_node("master/Computer")
-    catalog.add_attribute(node, "Status")
+    node = master.get_node("Computer")
+    master.add_attribute(node, "Status")
 
-    node = catalog.get_node("master/Computer/Home/Desktop")
-    catalog.add_attribute(node, "Description")
-    print catalog.get_attributes(node)
+    node = master.get_node("Computer/Home/Desktop")
+    master.add_attribute(node, "Description")
+    print master.get_attributes(node)
 
-    product = Product()
-    product.create("Multimedia Server 2", dict(Description="Multimedia Server for audio editing", Status="Inactive"), "master/Computer/Home/Desktop")
+    product = Product.create("Multimedia Server 2", dict(Description="Multimedia Server for audio editing", Status="Inactive"), master, "Computer/Home/Desktop")
 
 app = web.application(urls, globals())
 if __name__ == "__main__":

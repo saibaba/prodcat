@@ -1,12 +1,12 @@
 from db import db
 
-from catalog import Catalog, get_attributes, is_leaf
+from catalog import get_attributes, is_leaf
 from util.neoutil import subreference
 
 def get_products_root():
     return subreference('PRODUCTS_ROOT','PRODUCTS')
 
-def get_products():
+def _get_products():
     products_root = get_products_root()
     return [r.end for r in products_root.relationships.outgoing if r.type.name() == "PRODUCT"]
 
@@ -20,11 +20,11 @@ def get_product(name):
 
     return product
 
-def create_product(name, attributes, category_path):
+def create_product(name, attributes, catalog, category_path):
 
     product = None
 
-    category = Catalog().get_node(category_path)
+    category = catalog.get_node(category_path)
     if not is_leaf(category):
         raise Exception("Category path %s does not point to leaf!" % (category_path,))
 
@@ -51,25 +51,23 @@ def create_product(name, attributes, category_path):
 
 class Product(object):
 
-    def list(self):
-        attributes = None
-        with db.transaction:
-            attributes = get_attributes()
-        return [ (a['name'], a['type']) for a in attributes]
+    @classmethod
+    def list(cls):
+        products = _get_products()
+        return [ p['name'] for p in products]
 
-    def get(self, name):
-        attribute = None
+    def __init__(self, name):
+        self.product = None
         with db.transaction:
-            attributes = get_attributes()
-            for a in attributes:
-                if a['name'] == name:
-                    attribute = a
+            products = _get_products()
+            for p in products:
+                if p['name'] == name:
+                    self.product = p
                     break
 
-        return attribute
-
-    def create(self, name, attributes, category_path):
-        product = None
+    @classmethod
+    def create(cls, name, attributes, catalog, category_path):
         with db.transaction:
-            product = create_product(name, attributes, category_path)
-        return product
+            create_product(name, attributes, catalog, category_path)
+        return Product(name)
+

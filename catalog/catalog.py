@@ -22,20 +22,21 @@ def get_attributes(node):
     my_attributes = [(rel.end, rel)  for rel in node.relationships.outgoing if rel.type.name() == "ATTRIBUTE_TYPE"]
     return attributes_from_parent + my_attributes
 
-def _add_attribute(node, attribute, name = None, dflt = None, required = False):
+def _add_attribute(node, attribute, name = None, dflt = None, required = False, final = False):
 
     with db.transaction:
         current_attribute_names = [a[0]['name'] for a in get_attributes(node)]
         if attribute['name'] not in current_attribute_names:
             rel_name = name if name is not None else attribute['name']
-            node.ATTRIBUTE_TYPE(attribute, Required=required,Name=rel_name,DefaultValue=dflt)
+            node.ATTRIBUTE_TYPE(attribute.node(), Required=required,Name=rel_name,DefaultValue=dflt, Final=final)
 
 def is_leaf(node):
     return not has_matching(node.relationships.outgoing, lambda rel: rel.type.name() == "CATEGORY")
 
 class Catalog(object):
 
-    def list(self, path = "/"):
+    @classmethod
+    def list(cls):
         top_catalogs = []
         with db.transaction:
             catalogs_node = _get_catalogs_root()
@@ -45,6 +46,23 @@ class Catalog(object):
                     top_catalogs.append( "http://host:port/" + rel.end['name'] )
 
         return top_catalogs
+
+    @classmethod
+    def create(cls, catalog_name, categories_path = None):
+        categories = categories_path.split("/") if categories_path is not None else []
+        _create_path(catalog_name, categories)
+        return Catalog(catalog_name)
+
+    def __init__(self, catalog_name):
+        self.catalog_node = None
+        root = _get_catalogs_root()
+        for rel in root.relationships.outgoing:
+            if rel.type.name() == "CATALOG" and rel.end['name'] == catalog_name:
+                self.catalog_node = rel.end
+                break
+
+        if self.catalog_node is None:
+            raise Exception("Named catalog does not exist: %s" % (catalog_name,) )
 
     def _search_in_children(self, start_node, paths):
 
@@ -65,21 +83,17 @@ class Catalog(object):
 
         return node
 
-    def get_node(self, path):
-        paths = path.split("/")
-        root = _get_catalogs_root()
-        return self._search_in_children(root, paths)
+    def create_categories(self, categories_path):
+        categories = categories_path.split("/")
+        _create_path(self.catalog_name, categories)
+        return self
 
-    def create(self, path):
-        print "path to put:", path
-        data = path.split("/")
-        catalog_name = data[0]
-        categories = data[1:]
-        _create_path(catalog_name, categories)
-        return "Done"
+    def get_node(self, categories_path):
+        paths = categories_path.split("/")
+        return self._search_in_children(self.catalog_node, paths)
 
     def add_attribute(self, node, attribute_type_name):
-        attribute_type = AttributeType().get(attribute_type_name)
+        attribute_type = AttributeType(attribute_type_name)
         _add_attribute(node, attribute_type)
 
     def get_attributes(self, node):

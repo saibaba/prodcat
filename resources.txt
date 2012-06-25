@@ -1,16 +1,22 @@
 read this: http://blog.neo4j.org/2010/03/modeling-categories-in-graph-database.html
 
 
-/tenants/{tenant_id}/catalog/master
-/tenants/{tenant_id}/catalog/sales
-/tenants/{tenant_id}/catalog/sales/computers/memory/dimm
+Catalog and Categories:
+POST, GET: /tenants/{tenant_id}/catalog
+GET, PUT :  /tenants/{tenant_id}/catalog/sales/computers/memory/dimm
+POST, GET:  (attributes): /tenants/{tenant_id}/catalog/sales
 
-/tenants/{tenant_id}/catalog/sales?categories
 
-/tenants/{tenant_id}/attributes/{attribute_name}
+Attrbute Types:
+POST, GET:  /tenants/{tenant_id}/attributes
+PUT, GET : /tenants/{tenant_id}/attributes/attribute_type
 
-/tenants/{tenant_id}/items/{item_name}
+Products and product templates:
+POST, GET: /tenants/{tenant_id}/products/
+PUT, GET: /tenants/{tenant_id}/products/{product_name}
 
+Product Categorization:
+POST:  /tenants/{tenant_id}/catalog/sales/computers/memory/dimm
 
 catalog:
 columns: name

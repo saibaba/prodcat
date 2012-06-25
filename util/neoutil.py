@@ -16,7 +16,7 @@ def subreference(subrel_name, subnode_name):
 
     return node
 
-def childnode(parent, node_name, rel_name):
+def childnode(parent, node_name, rel_name, **kwargs):
 
     n = None
     for r in parent.relationships.outgoing:
@@ -25,7 +25,7 @@ def childnode(parent, node_name, rel_name):
             break
 
     if n is None:
-        n = db.node(name=node_name)
+        n = db.node(name=node_name, **kwargs)
         parent.relationships.create(rel_name, n)
 
     return n

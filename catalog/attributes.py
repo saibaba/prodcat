@@ -1,51 +1,46 @@
 from db import db
-from util.neoutil import subreference
+from util.neoutil import subreference, childnode
 
-def get_attributes_root():
+def _get_attributes_root():
     return subreference("ATTRIBUTE_TYPES_ROOT", "ATTRIBUTE_TYPES")
 
-def get_attributes():
-    attributes_root = get_attributes_root()
+def _get_attributes():
+    attributes_root = _get_attributes_root()
     return [r.end for r in attributes_root.relationships.outgoing if r.type.name() == "ATTRIBUTE_TYPE"]
 
-def create_attribute(name, typ):
+def _create_attribute(name, typ):
 
-    attributes_root = get_attributes_root()
-
-    attribute = None
-    for r in attributes_root.relationships.outgoing:
-        relation_name = r.type.name()
-        if relation_name == "ATTRIBUTE_TYPE" and r.end['name'] == name:
-            attribute = r.end
-            break
-
-    if attribute is None:
-        attribute = db.node(name=name, type=typ)
-        attributes_root.ATTRIBUTE_TYPE(attribute)
-
+    attributes_root = _get_attributes_root()
+    attribute = childnode(attributes_root, name, "ATTRIBUTE_TYPE", type=typ)
     return attribute
 
 class AttributeType(object):
 
+    @classmethod
     def list(self):
         attributes = None
         with db.transaction:
-            attributes = get_attributes()
+            attributes = _get_attributes()
         return [ (a['name'], a['type']) for a in attributes]
 
-    def get(self, name):
+    @classmethod
+    def create(cls, name, typ):
         attribute = None
         with db.transaction:
-            attributes = get_attributes()
+            attribute = _create_attribute(name, typ)
+        return AttributeType(name)
+
+    def __init__(self, name):
+        self.attribute = None
+        with db.transaction:
+            attributes = _get_attributes()
             for a in attributes:
                 if a['name'] == name:
-                    attribute = a
+                    self.attribute = a
                     break
 
-        return attribute
+    def __getitem__(self, key):
+        return self.attribute[key]
 
-    def create(self, name, typ):
-        attribute = None
-        with db.transaction:
-            attribute = create_attribute(name, typ)
-        return attribute
+    def node(self):
+        return self.attribute
