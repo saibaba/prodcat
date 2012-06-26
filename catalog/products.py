@@ -1,17 +1,17 @@
 from db import db
 
-from catalog import get_attributes, is_leaf
+from catalog import Catalog
 from util.neoutil import subreference
 
-def get_products_root():
+def _get_products_root():
     return subreference('PRODUCTS_ROOT','PRODUCTS')
 
 def _get_products():
-    products_root = get_products_root()
+    products_root = _get_products_root()
     return [r.end for r in products_root.relationships.outgoing if r.type.name() == "PRODUCT"]
 
-def get_product(name):
-    products_root = get_products_root()
+def _get_product(name):
+    products_root = _get_products_root()
     product = None
     for r in products_root.relationships.outgoing:
         if r.type.name() == "PRODUCT" and r.end['name'] == name:
@@ -24,20 +24,20 @@ def create_product(name, attributes, catalog, category_path):
 
     product = None
 
-    category = catalog.get_node(category_path)
-    if not is_leaf(category):
+    category = catalog.get_category(category_path)
+    if not category.is_leaf():
         raise Exception("Category path %s does not point to leaf!" % (category_path,))
 
-    category_attributes = get_attributes(category)
+    category_attributes = category.get_attributes()
 
-    product = get_product(name)
+    product = _get_product(name)
 
     if product is None:
         
-        products_root = get_products_root()
+        products_root = _get_products_root()
 
         product = db.node(name=name)
-        product.CATEGORY(category)
+        product.PRODUCT_CATEGORY(category.get_node())
         products_root.PRODUCT(product)
 
         for ca in category_attributes:
@@ -49,8 +49,8 @@ def create_product(name, attributes, catalog, category_path):
             product[relation['Name']] = attribute_value
             attribute_type = ca[0]
             if attribute_type['type'] == "category_relationship":
-                rel_category = catalog.get_node(attribute_value)
-                product.relationships.create(relation['Name'], rel_category) 
+                rel_category = catalog.get_category(attribute_value)
+                product.relationships.create(relation['Name'], rel_category.get_node()) 
 
     return product
 
@@ -61,6 +61,12 @@ class Product(object):
         products = _get_products()
         return [ p['name'] for p in products]
 
+    @classmethod
+    def create(cls, name, attributes, catalog, category_path):
+        with db.transaction:
+            create_product(name, attributes, catalog, category_path)
+        return Product(name)
+
     def __init__(self, name):
         self.product = None
         with db.transaction:
@@ -70,9 +76,18 @@ class Product(object):
                     self.product = p
                     break
 
-    @classmethod
-    def create(cls, name, attributes, catalog, category_path):
-        with db.transaction:
-            create_product(name, attributes, catalog, category_path)
-        return Product(name)
+    def get_attributes(self):
+        attributes = None
+        for rel in self.product.relationships.outgoing:
+            if rel.type.name() == "PRODUCT_CATEGORY" :
+                attributes = Catalog.get_category(rel.end['name'])
+
+        return attributes
+
+    def is_modal(self):
+        for a in self.get_attributes():
+            if a[0]['type'] == "category_relationship":
+                return True
+
+        return False
 

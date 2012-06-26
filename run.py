@@ -44,16 +44,16 @@ def test1():
 
     print AttributeType.list()
 
-    computer = master.get_node("Computer")
-    master.add_attribute(computer, "Status")
-    master.add_attribute(computer, "Processor")
+    computer = master.get_category("Computer")
+    computer.add_attribute("Status")
+    computer.add_attribute("Processor")
 
     master.create_categories("Processors/Intel")
     Product.create("Core Duo i5", dict(Description="i5 processor"), master, "Processors/Intel")
 
-    desktop = master.get_node("Computer/Home/Desktop")
-    master.add_attribute(desktop, "Description")
-    print master.get_attributes(desktop)
+    desktop = master.get_category("Computer/Home/Desktop")
+    desktop.add_attribute("Description")
+    print desktop.get_attributes()
 
     Product.create("Multimedia Server 1", dict(Description="Multimedia Server for video editing", Status="Active", Processor="Processors/Intel"), master, "Computer/Home/Desktop")
     Product.create("Multimedia Server 2", dict(Description="Multimedia Server for audio editing", Status="Inactive", Processor="Processors/Intel"), master, "Computer/Home/Desktop")
