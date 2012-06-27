@@ -57,9 +57,19 @@ def create_product(name, attributes, catalog, category_path):
 class Product(object):
 
     @classmethod
-    def list(cls):
-        products = _get_products()
-        return [ p['name'] for p in products]
+    def list(cls, category = None):
+        if category is None:
+            products = _get_products()
+            return [ p for p in products]
+        else:
+            return Product._list_leaves(category)
+
+    @classmethod
+    def _list_leaves(cls, category):
+        my_products = [ Product(rel.start['name']) for rel in category.get_node().relationships.incoming if rel.type.name() == "PRODUCT_CATEGORY" ]
+        for child_category in category.child_categories():
+            my_products  = my_products + Product.list(child_category)
+        return my_products
 
     @classmethod
     def create(cls, name, attributes, catalog, category_path):
@@ -68,19 +78,30 @@ class Product(object):
         return Product(name)
 
     def __init__(self, name):
-        self.product = None
+        self.node = None
         with db.transaction:
             products = _get_products()
             for p in products:
                 if p['name'] == name:
-                    self.product = p
+                    self.node = p
                     break
 
-    def get_attributes(self):
-        attributes = None
-        for rel in self.product.relationships.outgoing:
+    def get_category(self):
+        for rel in self.node.relationships.outgoing:
             if rel.type.name() == "PRODUCT_CATEGORY" :
-                attributes = Catalog.get_category(rel.end['name'])
+                return Catalog.Category(rel.end)
+
+    def get_attributes(self):
+        attributes = []
+        for rel in self.node.relationships.outgoing:
+            if rel.type.name() == "PRODUCT_CATEGORY" :
+                attr_rels = self.get_category().get_attributes()
+                for attr_rel in attr_rels:
+                    attribute_type = attr_rel[0]
+                    rel_for_attr = attr_rel[1]
+                    attribute_value = self.node[rel_for_attr['Name']]
+                    attributes.append( (attribute_type, rel_for_attr, attribute_value))
+                break
 
         return attributes
 
@@ -91,3 +112,25 @@ class Product(object):
 
         return False
 
+    def __getitem__(self, key):
+        return self.node[key]
+
+    def enumerate(self):
+        grv = {}
+        rv = {}
+        if not self.is_modal(): rv.append( self )
+
+        for a in self.get_attributes():
+            rel_name = a[1]['Name']
+            print "Checking attribute:" , rel_name
+            if a[0]['type'] == "category_relationship":
+                print "Need to list products under category:" ,  a[2]
+                category = self.get_category().get_catalog()
+                print "...Need to list products under category:" ,  a[2]
+                category  = category.get_category(a[2])
+                print "got category...", category
+                rv[rel_name] =  [ p.node['name'] for p in Product.list(category) ]
+            else:
+                grv[rel_name] =  rel_name
+
+        return (grv, rv)

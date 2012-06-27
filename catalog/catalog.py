@@ -50,11 +50,34 @@ class Catalog(object):
             #return [dict(type_name=a[0]['name'], Name=a[1]['Name'], Required=a[1]['Required'],DefaultValue=safev(a), Final=a[1]['Final']) for a in _get_attributes(self.node, include_ancestors)]
             return _get_attributes(self.node, include_ancestors)
 
+        def child_categories(self):
+            return [Catalog.Category(rel.end) for rel in self.node.relationships.outgoing if rel.type.name() == "CATEGORY"]
+
         def is_leaf(self):
             return not has_matching(self.node.relationships.outgoing, lambda rel: rel.type.name() == "CATEGORY")
    
         def get_node(self):
             return self.node
+
+        def _in_relations(self, node, rel_name):
+            for rel in self.node.relationships.incoming:
+                if rel.type.name() == rel_name:
+                    yield rel
+
+        def get_catalog(self):
+            p = self.node
+            f = False
+            while not f:
+                for rel in p.relationships.incoming:
+                    print "rel = " , rel.type.name(),  " for node: " , p['name']
+                    if rel.type.name() == "CATEGORY":
+                        p = rel.start
+                        break
+                    elif rel.type.name() == "CATALOG":
+                        f = True
+                        break
+            return Catalog(p['name'])
+
 
     @classmethod
     def list(cls):

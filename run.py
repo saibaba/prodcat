@@ -50,6 +50,7 @@ def test1():
 
     master.create_categories("Processors/Intel")
     Product.create("Core Duo i5", dict(Description="i5 processor"), master, "Processors/Intel")
+    Product.create("Core Duo i7", dict(Description="i7 processor"), master, "Processors/Intel")
 
     desktop = master.get_category("Computer/Home/Desktop")
     desktop.add_attribute("Description")
@@ -58,8 +59,13 @@ def test1():
     Product.create("Multimedia Server 1", dict(Description="Multimedia Server for video editing", Status="Active", Processor="Processors/Intel"), master, "Computer/Home/Desktop")
     Product.create("Multimedia Server 2", dict(Description="Multimedia Server for audio editing", Status="Inactive", Processor="Processors/Intel"), master, "Computer/Home/Desktop")
 
+def test2():
+    master = Catalog("master")
+    p = Product("Multimedia Server 1")
+    print p.enumerate()
+
 app = web.application(urls, globals())
 if __name__ == "__main__":
     # use tornado wsgi app.run()
-    test1()
+    test2()
 
